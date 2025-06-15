@@ -15,6 +15,8 @@ jobs:
         password: ${{ secrets.GH_PAT }}
       options: --user root
     env:
+      USERNAME: ${{ secrets.USERNAME }}
+      PASSWORD: ${{ secrets.PASSWORD }}
       BURNER_USERNAME: ${{ secrets.BURNER_USERNAME }}
       BURNER_PASSWORD: ${{ secrets.BURNER_PASSWORD }}
     permissions:
@@ -37,7 +39,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Run script
-        run: python finder.py
+        run: python test_listing.py
       
       - name: Mark repo as safe
         run: git config --global --add safe.directory /__w/scrapers/scrapers
