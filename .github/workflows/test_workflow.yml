@@ -40,6 +40,3 @@ jobs:
 
       - name: Run script
         run: python test_listing.py
-      
-      - name: Mark repo as safe
-        run: git config --global --add safe.directory /__w/scrapers/scrapers
