@@ -293,8 +293,7 @@ async def main():
     contact = await create_contacts(favorite, session, headers, authdata)
     number = contact['phone']
     if number != expected:
-        print(f"Received: {number} | Expected: {expected}")
-        raise Exception("There seems to be a mismatch (or the link has become invalid)")
+        raise Exception(f"Received: {number} | Expected: {expected}" + "\nThere seems to be a mismatch (or the link has become invalid)")
 
     end = time.time()
     print("Total time: " + str(end - start) + " seconds")
