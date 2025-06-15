@@ -42,7 +42,7 @@ jobs:
         run: python finder.py
       
       - name: Mark repo as safe
-        run: git config --global --add safe.directory /__w/scrapers/scrapers
+        run: git config --global --add safe.directory /__w/FFScraper/FFScraper
 
       - name: Commit and push changes to the repository
         uses: EndBug/add-and-commit@v9
