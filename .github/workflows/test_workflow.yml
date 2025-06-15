@@ -41,16 +41,3 @@ jobs:
       
       - name: Mark repo as safe
         run: git config --global --add safe.directory /__w/scrapers/scrapers
-
-      - name: Commit and push changes to the repository
-        uses: EndBug/add-and-commit@v9
-        with:
-          author_name: 'github-actions[bot]'
-          author_email: '41898282+github-actions[bot]@users.noreply.github.com'
-          message: 'Update urls.txt with new URLs'
-          add: |
-            urls.txt
-            blocked.txt
-            error.txt
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
