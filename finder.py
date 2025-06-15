@@ -36,22 +36,12 @@ async def create_contacts(favorites_list, parsed_urls, session: requests.AsyncSe
 
 
     async def get_metdata(browser, page, url):
-        attempts = 0
-        candidates = None
-        while True:
-            candidates = await page.find_elements_by_text('Call The Landlord')
-            if candidates:
-                break
-            else:
-                attempts += 1
-                if attempts >= 3:
-                    raise Exception(f"Phone menu not found at {url}")
-                await page.wait(3)
+        candidates = await page.find_elements_by_text('Call The Landlord') 
         index = 1
         for candidate in candidates:
             if candidate:
                 await candidate.apply("candidate => candidate.click()")
-                await browser.wait(uniform(3.0, 5.0))
+                await browser.wait(uniform(1.0, 3.0))
                 finder = await page.query_selector_all("div.flex.flex-col.items-center.gap-4")
                 if not finder:
                     await browser.wait(uniform(1.0, 3.0))
@@ -70,35 +60,37 @@ async def create_contacts(favorites_list, parsed_urls, session: requests.AsyncSe
                     return "Not Provided"
                 index += 1
                 #If phone number wasn't found
+        if not candidates:
+            raise Exception(f"Phone menu not found at {url}")
 
     async def parse_favorite(property, url):
         nonlocal parsed
         slave = await clone_driver(zendriver_cookies, local_storage, session_storage)
         await slave.wait(uniform(1.0, 3.0))
         page = await slave.get(url)
-        await page.wait(uniform(1.0, 3.0))
+        await slave.wait(3)
+        # await page.wait(uniform(1.0, 3.0))
         
         contact = {}
         attempts = 0
         metadata = ''
-        while True:
+        while attempts < 3:
             try:
                 metadata = await get_metdata(slave, page, url)
                 if metadata != 'Not Provided':
                     break
-                attempts += 1
-                if attempts >= 3:
-                    break
             except Exception as e:
                 metadata = 'Not Provided' 
-                attempts += 1
-                if attempts >= 3:
-                    with open('error.txt', 'a') as file:
-                        file.write(f"{url}:\n{str(e)}\n\n")
-                    break
-            page = await slave.get(url)
-            await page.wait(3 + attempts)
             
+            page = await slave.get(url)
+            await slave.wait(3)
+            attempts += 1
+            if attempts >= 3:
+                with open('error.txt', 'a') as file:
+                    file.write(f"{url}:\n{str(e)}\n\n")
+                break
+
+        
         phone = 'Not Provided'
         name = 'Not Provided'
         location = 'Not Provided'
@@ -153,7 +145,9 @@ async def create_contacts(favorites_list, parsed_urls, session: requests.AsyncSe
                 contact['location'] = 'Not Provided'
                 with open('error.txt', 'a') as file:
                     file.write(f"Issue while parsing metadata: {str(e)}\n\n")
-                    
+        else:
+            contact['phone'] = 'Not Provided'
+            
         contact['phone'] = phone
         contact['name'] = name
         contact['location'] = location
@@ -194,6 +188,8 @@ async def create_contacts(favorites_list, parsed_urls, session: requests.AsyncSe
         if url in parsed_urls:
             continue
         if parsed >= 20:
+            if tasks:
+                new_contacts.extend(await asyncio.gather(*tasks))
             break
         task = asyncio.create_task(parse_favorite(property, url))
         tasks.append(task)
