@@ -2,7 +2,7 @@ name: Run Python Script
 
 on:
   schedule:
-    - cron: '* */2 * * *'  # Every 2 hours (UTC)
+    - cron: '0 */2 * * *'  # Every 2 hours (UTC)
   workflow_dispatch:       # Optional: allows manual triggering from the Actions tab
 
 jobs:
