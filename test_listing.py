@@ -6,6 +6,8 @@ from curl_cffi import requests
 import json
 import re
 from random import uniform
+import math
+import random
 
 async def POST(url, headers, session, data = None, json = None):
     response = await session.post(
@@ -22,19 +24,16 @@ async def POST(url, headers, session, data = None, json = None):
     return response
 
 
+async def clone_driver(cookies, local_storage, session_storage): 
+    slave = await Driver.start(headless=True, no_sandbox=True, browser_executable_path='/usr/bin/chromium-browser')
+    # await slave.cookies.set_all(cookies)
+    page = await slave.get("https://www.furnishedfinder.com")
+    await page.wait(uniform(1.0, 3.0))
+    await page.evaluate(f"{local_storage}")
+    await page.evaluate(f"{session_storage}")
+    return slave
 
-
-async def create_contacts(favorites_list, parsed_urls, session: requests.AsyncSession, headers, authdata):
-    async def clone_driver(cookies, local_storage, session_storage): 
-        slave = await Driver.start(headless=True, no_sandbox=True, browser_executable_path='/usr/bin/chromium-browser')
-        # await slave.cookies.set_all(cookies)
-        page = await slave.get("https://www.furnishedfinder.com")
-        await page.wait(uniform(3.0, 6.0))
-        await page.evaluate(f"{local_storage}")
-        await page.evaluate(f"{session_storage}")
-        return slave
-
-
+async def create_contacts(property, session: requests.AsyncSession, headers, authdata):
     async def get_metdata(browser, page, url):
         attempts = 0
         candidates = None
@@ -54,7 +53,7 @@ async def create_contacts(favorites_list, parsed_urls, session: requests.AsyncSe
                 await browser.wait(uniform(3.0, 5.0))
                 finder = await page.query_selector_all("div.flex.flex-col.items-center.gap-4")
                 if not finder:
-                    await browser.wait(uniform(3.0, 5.0))
+                    await browser.wait(uniform(1.0, 3.0))
                     finder = await page.query_selector_all("div.flex.flex-col.items-center.gap-4")
                     if index >= len(candidates) and not finder:
                         return "Not Provided"
@@ -71,7 +70,7 @@ async def create_contacts(favorites_list, parsed_urls, session: requests.AsyncSe
                 index += 1
                 #If phone number wasn't found
 
-    async def parse_favorite(property, url):
+    async def parse_favorite(url):
         nonlocal parsed
         slave = await clone_driver(zendriver_cookies, local_storage, session_storage)
         await slave.wait(uniform(1.0, 3.0))
@@ -155,11 +154,6 @@ async def create_contacts(favorites_list, parsed_urls, session: requests.AsyncSe
                     file.write(f"Issue while parsing metadata: {str(e)}\n\n")
                     
         contact['phone'] = phone
-        contact['name'] = name
-        contact['location'] = location
-        contact['url'] = url
-        contact['desc'] = property['name']
-        contact['details'] = property['details']
         if page:
             await page.close()
         return contact
@@ -188,30 +182,17 @@ async def create_contacts(favorites_list, parsed_urls, session: requests.AsyncSe
     tasks = []
     parsed = 0
 
-    for property in favorites_list:
-        property_id = property['id'].lstrip('Prop')
-        url = f"https://www.furnishedfinder.com/property/{property_id}"
-        if url in parsed_urls:
-            continue
-        if parsed >= 15:
-            break
-        task = asyncio.create_task(parse_favorite(property, url))
-        tasks.append(task)
-        parsed += 1
-        if parsed != 0 and parsed % 3 == 0:
-            new_contacts.extend(await asyncio.gather(*tasks))
-            tasks = []
-            await asyncio.sleep(uniform(3.0 , 6.0))  # To avoid overwhelming the server
-        else:
-            await asyncio.sleep(uniform(0.5, 1.5))
-    new_contacts.extend(await asyncio.gather(*tasks))
-    return new_contacts
+    contact = await parse_favorite(property)
+
+    return contact
 
         
 
 async def main():
-    username = os.getenv("USERNAME")
-    password = os.getenv("PASSWORD")
+    username = os.getenv("BURNER_USERNAME")
+    password = os.getenv("BURNER_PASSWORD")
+    username = "tom@rent-sherpa.com"
+    password = "system17"
     start = time.time()
     session = requests.AsyncSession()
     headers = {
@@ -248,144 +229,75 @@ async def main():
         session=session
     )
 
+    # local_storage = f"localStorage.setItem('authdetailnew', '{authdata}')" 
+    # session_storage = f"sessionStorage.setItem('authdetailnew', '{authdata}')"
+    # random_list = [
+    #     "Gainesville, Florida",
+    #     "Tampa, Florida",
+    #     "Orlando, Florida",
+    #     "King George, Virginia",
+    #     "Charleston, South Carolina",
+    #     "Fredericksburg, Virginia"
+    # ]
+    # random_choice = random.choice(random_list)
+    # slave = await clone_driver({}, local_storage=local_storage, session_storage=session_storage)
+    # page = await slave.get("https://furnishedfinder.com")
+    # await page.wait(uniform(1.0, 3.0))
+    # search_bar = await page.find_element_by_text("Enter a destination")
+    # await search_bar.click()
+    # await page.wait(uniform(0.5, 1.0))
+    # await search_bar.send_keys(random_choice)
+    # await page.wait(uniform(1.0, 1.5))
+    # search = await page.query_selector("#search-btn")
+    # await search.apply("search => search.click()")
+    # await page.wait(uniform(3.0, 6.0))
+    # i = 0
+    # scrolls = random.randint(0,5)
+    # while i < scrolls:
+    #     await page.scroll_down(random.randint(5, 25))
+    #     await page.wait(uniform(1.0, 3.0))
+    #     i += 1
+    # await page.scroll_up(random.randint(0,10))
+    # properties = await page.query_selector_all('div[data-testid="property-cards"')
+    # property = random.choice(properties)
+    # await page.wait(uniform(1.0, 3.0))
+    # await property.click()
+    # await page.close()
 
-    headers={
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.78 Safari/537.36',
-        'Accept': 'application/json, text/javascript, */*; q=0.01',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip, deflate, br, zstd',
-        'Content-Type': 'application/json; charset=utf-8',
-        'token': token,
-        'ff-origin': 'FF-Web',
-        'X-Requested-With': 'XmlHttpRequest',
-        'Origin': 'https://www.furnishedfinder.com',
-        'Connection': 'keep-alive',
-        'Referer': 'https://www.furnishedfinder.com/',
-        'Sec-Fetch-Dest': 'empty',
-        'Sec-Fetch-Mode': 'cors',
-        'Sec-Fetch-Site': 'same-site',
-        'DNT': '1',
-        'Sec-GPC': '1',
-        'Content-Length': '0',
-        'TE': 'trailers'
-    }
+    favorites_list = [
+        "https://www.furnishedfinder.com/property/657089_1",
+        "https://www.furnishedfinder.com/property/573206_1",
+        "https://www.furnishedfinder.com/property/778254_1",
+        "https://www.furnishedfinder.com/property/669699_1",
+        "https://www.furnishedfinder.com/property/795612_1",
+        "https://www.furnishedfinder.com/property/770249_1",
+        "https://www.furnishedfinder.com/property/572042_1",
+        "https://www.furnishedfinder.com/property/515055_1",
+        "https://www.furnishedfinder.com/property/745115_1"     
+    ]
 
+    expected = [
+        "(716) 498-0151",
+        "(718) 790-1579",
+        "(917) 805-4151",
+        "(347) 292-1261",
+        "(714) 719-4608",
+        "(714) 804-6899",
+        "(626) 203-3821",
+        "(714) 679-3839",
+        "(657) 642-7666"
+    ]
 
-    favorites_response = await POST(
-        "https://s7core.furnishedfinder.com/api/Favorites/GetFavoriteList?cityState=",
-        headers=headers,
-        session=session
-    )
-    favorites_list = json.loads(favorites_response.text)['Value']
+    choice = random.randint(0, 8)
+    favorite = favorites_list[choice]
+    expected = expected[choice]
 
+    contact = await create_contacts(favorite, session, headers, authdata)
+    number = contact['phone']
+    if number != expected:
+        raise Exception("There seems to be a mismatch (or the link has become invalid)")
 
-    parsed_urls = set()
-    if os.path.exists('urls.txt'):
-        with open('urls.txt', 'r') as file:
-            for line in file:
-                url = line.strip()
-                if url:
-                    parsed_urls.add(url)
-    if os.path.exists('blocked.txt'):
-        with open('blocked.txt') as file:
-            for line in file:
-                url = line.strip()
-                if url:
-                    parsed_urls.add(url)
-
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.78 Safari/537.36',
-        "Accept": "*/*",
-        "Content-Type": "application/json; charset=utf-8",
-        "Origin": "https://www.furnishedfinder.com",
-        "Referer": "https://www.furnishedfinder.com/",
-        "Ff-Origin": "FF-Web",
-        "og-api-client-name": "web-modules"
-    }
-    
-    if os.getenv("BURNER_USERNAME") != username:
-        username = os.getenv("BURNER_USERNAME")
-        password = os.getenv("BURNER_PASSWORD")
-        payload = {
-            "username": username,
-            "password": password
-        }
-    
-        login_response = await POST(
-            "https://s12core.furnishedfinder.com/api/PwaData/WMSLoginUpdated",
-            headers=headers,
-            json=payload,
-            session=session
-        )
-
-        response_data = json.loads(login_response.text)
-        token = response_data['Value']['TokenString'].split('--jwttoken')[1].split('--user')[0]
-        encrypted_username = response_data['Value']['EncryptedUserName']
-        authdata = response_data['Value']['TokenString']
-
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.78 Safari/537.36',
-        'Accept': 'text/x-component',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip, deflate, br, zstd',
-        'Referer': 'https://www.furnishedfinder.com/property/657089_1',
-        'token': token,
-        # 'Next-Action': '40806bbf717ad9b3f34bf0f07fe66c56e3eb73751e',
-        'Content-Type': 'text/plain;charset=UTF-8',
-        'Origin': 'https://www.furnishedfinder.com',
-        'Connection': 'keep-alive',
-        'Sec-Fetch-Dest': 'empty',
-        'Sec-Fetch-Mode': 'cors',
-        'Sec-Fetch-Site': 'same-origin',
-        'DNT': '1',
-    }
-
-
-    
-
-    new_contacts = await create_contacts(favorites_list, parsed_urls, session, headers, authdata)
-    
-
-    delete_list = []
-    index = 0
-    buffer = 0
-    new_urls = set()
-    for contact in new_contacts:
-        if contact["phone"] == "Not Provided":
-            with open('blocked.txt', 'a') as file:
-                file.write(f"{contact['url']}\n")
-            delete_list.append(index - buffer)
-            buffer += 1
-        else:
-            new_urls.add(contact['url'])
-            print(f"Name: {contact['name']}")
-            print(f"Phone: {contact['phone']}")
-            print(f"Location: {contact['location']}")
-            print(f"URL: {contact['url']}")
-            print("-" * 20)
-        index += 1
-
-    for index in delete_list:
-        del new_contacts[index]
-
-
-    with open('urls.txt', 'a') as file:
-        for url in new_urls:
-            file.write(url + "\n")
-
-    webhook_url = 'https://services.leadconnectorhq.com/hooks/BNVJPUHZCILegkR51b4g/webhook-trigger/528d4656-d561-4591-b885-1c1a33dda461'
-    tasks = []
-    for contact in new_contacts:
-        task = asyncio.create_task(POST(url=webhook_url, headers=[], session=session, json=contact))
-        tasks.append(task)
-    for response in await asyncio.gather(*tasks):
-        if response.status_code == 200:
-            print("Data sent successfully!")
-        else:
-            print("Failed to send data. Status code:", response.status_code)
-            print("Response:", response.text)
     end = time.time()
-    print("Length of favorites list: " + str(len(favorites_list)))
     print("Total time: " + str(end - start) + " seconds")
     return
 
