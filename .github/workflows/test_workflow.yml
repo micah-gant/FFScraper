@@ -1,0 +1,42 @@
+name: Test Scraper
+
+on:
+  schedule:
+    - cron: '0 */2 * * *'  # Every 2 hours (UTC)
+  workflow_dispatch:       # Optional: allows manual triggering from the Actions tab
+
+jobs:
+  run:
+    runs-on: ubuntu-22.04
+    container:
+      image: ghcr.io/micah-gant/scrapers/alpine-chrome:latest
+      credentials:
+        username: micah-gant
+        password: ${{ secrets.GH_PAT }}
+      options: --user root
+    env:
+      USERNAME: ${{ secrets.USERNAME }}
+      PASSWORD: ${{ secrets.PASSWORD }}
+      BURNER_USERNAME: ${{ secrets.BURNER_USERNAME }}
+      BURNER_PASSWORD: ${{ secrets.BURNER_PASSWORD }}
+    permissions:
+      contents: write
+    steps:
+      - name: Check Chrome version and path
+        run: |
+          which chromium-browser
+          chromium-browser --version
+      - name: Check Python and Pip paths and versions
+        run: |
+          ls -l /venv/bin/python
+          which python
+          python --version
+          which pip
+          pip --version
+          echo $PATH
+      
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run script
+        run: python test_scraper.py
