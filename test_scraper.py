@@ -33,7 +33,7 @@ async def clone_driver(cookies, local_storage, session_storage):
     await page.evaluate(f"{session_storage}")
     return slave
 
-async def create_contacts(property, session: requests.AsyncSession, headers, authdata):
+async def get_phone_number(property, session: requests.AsyncSession, headers, authdata):
     async def get_metdata(browser, page, url):
         attempts = 0
         candidates = None
@@ -94,7 +94,6 @@ async def create_contacts(property, session: requests.AsyncSession, headers, aut
         if loaded and (target == "https://www.furnishedfinder.com/" or phone_blocked): #Redirect due to invalid link or blocked button
             metadata = 'Not Provided'
             valid = False
-        contact = {}
         attempts = 0
         metadata = 'Not Provided'
         while valid:
@@ -136,64 +135,12 @@ async def create_contacts(property, session: requests.AsyncSession, headers, aut
                 await page.wait_for_ready_state('complete', uniform(3 + (attempts ** 2), 3 + (attempts ** 2) + 2)) #longer wait each time
             
         phone = 'Not Provided'
-        name = 'Not Provided'
-        location = 'Not Provided'
         if metadata != 'Not Provided':
             match = re.search(r'(\([0-9]{3}\) [0-9]{3}\-[0-9]{4})', metadata)
             phone = match.group(1)
-            range = match.span()[1]
-            metadata = metadata[range+1: ].split(' ')
-            try:    
-                def find_city():
-                    nonlocal buffer
-                    city = ""
-                    while buffer < len(metadata):
-                        temp = metadata[buffer]
-                        buffer += 1
-                        if re.search(',', temp):
-                            temp = temp[0:-1]
-                            city += temp
-                            city = city.strip()
-                            return city
-                        city += temp
-                    return 'Not Provided'
-
-                buffer = 0
-                name = metadata[0]
-                buffer += 1
-                if re.fullmatch(r'([A-Z])|([A-Z]\.?)', name):
-                    name = f" {metadata[buffer]}"
-                    buffer += 1
-
-                city = find_city()
-                if city == 'Not Provided':
-                    location = 'Not Provided'
-                else:
-                    state = metadata[buffer]
-                    location = f"{city}, {state}"
-                    if not re.fullmatch(r'([A-Z][a-z]*)|([A-Z]\.\s[A-Z][a-z]*)', name):
-                        contact['name'] = 'Not Provided'
-                        buffer = 0
-                        city = find_city()
-                        if city == 'Not Provided':
-                            location = 'Not Provided'
-                        else:
-                            state = metadata[buffer]
-                            location = f"{city}, {state}"
-
-                    if not re.fullmatch(r'[A-Z][a-z]*, [A-Z]{2}', location):
-                        contact['location'] = 'Not Provided'
-            
-            except Exception as e:
-                contact['name'] = 'Not Provided'
-                contact['location'] = 'Not Provided'
-                with open('error.txt', 'a') as file:
-                    file.write(f"Issue while parsing metadata: {str(e)}\n\n")
-                    
-        contact['phone'] = phone
         if page:
             await page.close()
-        return contact
+        return phone
 
     
     # session = requests.AsyncSession()
@@ -213,15 +160,13 @@ async def create_contacts(property, session: requests.AsyncSession, headers, aut
         for cookie in cookies
     ]
 
-    new_contacts = []
     local_storage = f"localStorage.setItem('authdetailnew', '{authdata}')" 
     session_storage = f"sessionStorage.setItem('authdetailnew', '{authdata}')"
-    tasks = []
     parsed = 0
 
-    contact = await parse_favorite(property)
+    phone_number = await parse_favorite(property)
 
-    return contact
+    return phone_number
 
         
 
@@ -327,8 +272,7 @@ async def main():
     favorite = favorites_list[choice]
     expected = expected[choice]
 
-    contact = await create_contacts(favorite, session, headers, authdata)
-    number = contact['phone']
+    number = await get_phone_number(favorite, session, headers, authdata)
     if number != expected:
         raise Exception(f"Received: {number} | Expected: {expected}" + "\nThere seems to be a mismatch (or the link has become invalid)")
 
