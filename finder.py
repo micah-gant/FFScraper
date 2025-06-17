@@ -239,7 +239,7 @@ async def create_contacts(favorites_list, parsed_urls, session: requests.AsyncSe
             tasks = []
             await asyncio.sleep(uniform(3.0 , 6.0))  # To avoid overwhelming the server
         else:
-            await asyncio.sleep(uniform(0.5, 1.5))
+            await asyncio.sleep(uniform(2.0, 3.0))
     new_contacts.extend(await asyncio.gather(*tasks))
     return new_contacts
 
