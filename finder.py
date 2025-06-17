@@ -79,7 +79,7 @@ async def create_contacts(favorites_list, parsed_urls, session: requests.AsyncSe
         attempts = 0
         loaded = False
         while True:
-            attemps += 1
+            attempts += 1
             try:
                 await page.wait_for_ready_state('complete', uniform(3 + (attempts ** 2), 3 + (attempts ** 2) + 2))
                 loaded = True
@@ -87,7 +87,7 @@ async def create_contacts(favorites_list, parsed_urls, session: requests.AsyncSe
             except:
                 page = await slave.get(url)
             finally:
-                if attemps >= 3:
+                if attempts >= 3:
                     break
         valid = True
         phone_blocked = await page.query_selector('button.cursor-not-allowed')
