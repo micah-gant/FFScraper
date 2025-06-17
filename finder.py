@@ -223,17 +223,18 @@ async def create_contacts(favorites_list, parsed_urls, session: requests.AsyncSe
     tasks = []
     parsed = 0
 
+    chill = random.randint(2,4)
     for property in favorites_list:
         property_id = property['id'].lstrip('Prop')
         url = f"https://www.furnishedfinder.com/property/{property_id}"
         if url in parsed_urls:
             continue
-        if parsed >= 15:
+        if parsed >= chill * 2:
             break
         task = asyncio.create_task(parse_favorite(property, url))
         tasks.append(task)
         parsed += 1
-        if parsed != 0 and parsed % 3 == 0:
+        if parsed != 0 and parsed % chill == 0:
             new_contacts.extend(await asyncio.gather(*tasks))
             tasks = []
             await asyncio.sleep(uniform(3.0 , 6.0))  # To avoid overwhelming the server
