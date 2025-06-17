@@ -5,7 +5,7 @@ import time
 from curl_cffi import requests
 import json
 import re
-from random import uniform
+from random import uniform, randint
 
 async def POST(url, headers, session, data = None, json = None):
     response = await session.post(
