@@ -2,7 +2,7 @@ name: Run Scraper
 
 on:
   schedule:
-    - cron: '*/6 * * * *'  # Every 6 mins (UTC)
+    - cron: '*/5 * * * *'  # Every 5 mins (UTC)
   workflow_dispatch:       # Optional: allows manual triggering from the Actions tab
 
 jobs:
