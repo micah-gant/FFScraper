@@ -223,7 +223,7 @@ async def create_contacts(favorites_list, parsed_urls, session: requests.AsyncSe
     tasks = []
     parsed = 0
 
-    chill = random.randint(2,4)
+    chill = randint(2,4)
     for property in favorites_list:
         property_id = property['id'].lstrip('Prop')
         url = f"https://www.furnishedfinder.com/property/{property_id}"
