@@ -73,30 +73,67 @@ async def create_contacts(property, session: requests.AsyncSession, headers, aut
     async def parse_favorite(url):
         nonlocal parsed
         slave = await clone_driver(zendriver_cookies, local_storage, session_storage)
-        await slave.wait(uniform(1.0, 3.0))
+        await slave.wait(uniform(0.5, 1.5))
         page = await slave.get(url)
-        await page.wait(uniform(1.0, 3.0))
-        
+        attempts = 0
+        loaded = False
+        while True:
+            attempts += 1
+            try:
+                await page.wait_for_ready_state('complete', uniform(3 + (attempts ** 2), 3 + (attempts ** 2) + 2))
+                loaded = True
+                break
+            except:
+                page = await slave.get(url)
+            finally:
+                if attempts >= 3:
+                    break
+        valid = True
+        phone_blocked = await page.query_selector('button.cursor-not-allowed')
+        target = await page.evaluate("window.location.href")
+        if loaded and (target == "https://www.furnishedfinder.com/" or phone_blocked): #Redirect due to invalid link or blocked button
+            metadata = 'Not Provided'
+            valid = False
         contact = {}
         attempts = 0
-        metadata = ''
-        while True:
-            try:
-                metadata = await get_metdata(slave, page, url)
-                if metadata != 'Not Provided':
-                    break
-                attempts += 1
-                if attempts >= 3:
-                    break
-            except Exception as e:
-                metadata = 'Not Provided' 
-                attempts += 1
-                if attempts >= 3:
+        metadata = 'Not Provided'
+        while valid:
+            target = await page.evaluate("window.location.href")
+            phone_blocked = await page.query_selector('button.cursor-not-allowed')
+            if target == "https://www.furnishedfinder.com/" or phone_blocked:
+                break
+            attempts += 1
+            subattempts = 0
+            success = False
+            error = ""
+            while True:
+                subattempts += 1
+                error = ""
+                try:
+                    metadata = await get_metdata(slave, page, url)
+                    if metadata != 'Not Provided':
+                        if metadata == 'Verify':
+                            exit("The phone number for this account needs to be verified")
+                        success = True
+                        break
+                    elif subattempts >= 3:
+                        break
+                except Exception as e:
+                    error = e
+                    metadata = 'Not Provided' 
+                    if subattempts >= 3:
+                        break
+                await page.wait_for_ready_state('complete', uniform(3 + (attempts ** 2), 3 + (attempts ** 2) + 2))
+            if success:
+                break
+            elif attempts >= 3:
+                if error:
                     with open('error.txt', 'a') as file:
-                        file.write(f"{url}:\n{str(e)}\n\n")
-                    break
-            page = await slave.get(url)
-            await page.wait(uniform(3 + (attempts ** 2), 3 + (attempts ** 2) + 2)) #longer wait each time
+                        file.write(f"{url}:\n{str(error)}\n\n")
+                break
+            else:
+                page = await slave.get(url)
+                await page.wait_for_ready_state('complete', uniform(3 + (attempts ** 2), 3 + (attempts ** 2) + 2)) #longer wait each time
             
         phone = 'Not Provided'
         name = 'Not Provided'
