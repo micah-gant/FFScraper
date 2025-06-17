@@ -1,8 +1,6 @@
 name: Test Scraper
 
 on:
-  schedule:
-    - cron: '0 */2 * * *'  # Every 2 hours (UTC)
   workflow_dispatch:       # Optional: allows manual triggering from the Actions tab
 
 jobs:
