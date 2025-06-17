@@ -117,7 +117,7 @@ async def create_contacts(favorites_list, parsed_urls, session: requests.AsyncSe
                     metadata = await get_metdata(slave, page, url)
                     if metadata != 'Not Provided':
                         if metadata == 'Verify':
-                            exit(1)
+                            exit("The phone number for this account needs to be verified")
                         success = True
                         break
                     elif subattempts >= 3:
