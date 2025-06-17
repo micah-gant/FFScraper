@@ -79,7 +79,7 @@ async def create_contacts(favorites_list, parsed_urls, session: requests.AsyncSe
         attempts = 0
         loaded = False
         while True:
-            attemps = 1
+            attemps += 1
             try:
                 await page.wait_for_ready_state('complete', uniform(3 + (attempts ** 2), 3 + (attempts ** 2) + 2))
                 loaded = True
