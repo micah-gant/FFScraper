@@ -1,4 +1,5 @@
 import zendriver as Driver
+from sys import exit
 import asyncio
 import os
 import time
@@ -66,6 +67,8 @@ async def create_contacts(favorites_list, parsed_urls, session: requests.AsyncSe
                     match = re.search(r'(\([0-9]{3}\) [0-9]{3}\-[0-9]{4})', text)
                     if match:
                         return text
+                    elif re.search("For security purposes, we first need to verify that you are a real user.", text):
+                        return "Verify"
                 if index >= len(candidates):
                     return "Not Provided"
                 index += 1
@@ -113,6 +116,8 @@ async def create_contacts(favorites_list, parsed_urls, session: requests.AsyncSe
                 try:
                     metadata = await get_metdata(slave, page, url)
                     if metadata != 'Not Provided':
+                        if metadata == 'Verify':
+                            exit(1)
                         success = True
                         break
                     elif subattempts >= 3:
