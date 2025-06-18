@@ -254,7 +254,6 @@ async def main():
     username = os.getenv("USERNAME")
     password = os.getenv("PASSWORD")
 
-    start = time.time()
     session = requests.AsyncSession()
     headers = {
         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.78 Safari/537.36',
@@ -335,6 +334,19 @@ async def main():
                 if url:
                     parsed_urls.add(url)
 
+
+    new_property = False
+    for property in favorites_list:
+         property_id = property['id'].lstrip('Prop')
+         url = f"https://www.furnishedfinder.com/property/{property_id}"
+         if url not in parsed_urls:
+             new_property = True
+             break
+    if not new_property:
+        print("There were no new properties to parse")
+        return
+
+    
     headers = {
         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.78 Safari/537.36',
         "Accept": "*/*",
@@ -383,8 +395,6 @@ async def main():
     }
 
 
-    
-
     new_contacts = await create_contacts(favorites_list, parsed_urls, session, headers, authdata)
     
 
@@ -426,10 +436,13 @@ async def main():
         else:
             print("Failed to send data. Status code:", response.status_code)
             print("Response:", response.text)
-    end = time.time()
     print("Length of favorites list: " + str(len(favorites_list)))
-    print("Total time: " + str(end - start) + " seconds")
+    print("New contacts parsed: " + str(len(new_contacts)))
     return
 
 if __name__ == '__main__':
+    start = time.time()
     asyncio.run(main())
+    end = time.time()
+    print("Total execution time: " + str(end - start) + " seconds")
+
