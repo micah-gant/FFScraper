@@ -438,6 +438,7 @@ async def main():
             print("Response:", response.text)
     print("Length of favorites list: " + str(len(favorites_list)))
     print("New contacts parsed: " + str(len(new_contacts)))
+    print("New contacts blocked: " + str(len(delete_list)))
     return
 
 if __name__ == '__main__':
